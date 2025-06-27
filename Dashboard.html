@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Patient Monitoring Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #96bcb4 0%, #bbdcd3 50%, #b2ced6 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .logo {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 15px;
+      border: 2px solid rgba(28, 181, 196, 0.3);
+      box-shadow: 0 8px 25px rgba(28, 181, 196, 0.2);
+    }
+
+    .logo svg {
+      transition: transform 0.3s ease;
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+    }
+
+    .logo:hover svg {
+      transform: scale(1.05);
+    }
+
+    .header h1 {
+      color: #2c3e50;
+      font-size: 2.5em;
+      font-weight: 700;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .header .subtitle {
+      color: #34495e;
+      font-size: 1.1em;
+      opacity: 0.8;
+    }
+
+    .dashboard-container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 25px;
+      background: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .legend-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .normal-legend { background-color: #28a745; color: white; }
+    .warning-legend { background-color: #ffc107; color: #212529; }
+    .critical-legend { background-color: #dc3545; color: white; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      background: white;
+    }
+
+    thead {
+      background: linear-gradient(135deg, #9dbbc9 0%, #91accb 100%);
+    }
+
+    th {
+      padding: 20px 15px;
+      text-align: center;
+      color: white;
+      font-weight: 600;
+      font-size: 1.1em;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    th:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 25%;
+      height: 50%;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    td {
+      padding: 18px 15px;
+      text-align: center;
+      border-bottom: 1px solid rgba(157, 187, 201, 0.2);
+      transition: background-color 0.3s ease;
+    }
+
+    tr:hover {
+      background-color: rgba(150, 188, 180, 0.1);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .patient-name {
+      font-weight: 600;
+      color: #2c3e50;
+      font-size: 1.1em;
+    }
+
+    .vital-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9em;
+      min-width: 80px;
+      justify-content: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .vital-badge:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .normal {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
+    }
+
+    .warning {
+      background: linear-gradient(135deg, #ffc107, #fd7e14);
+      color: #212529;
+    }
+
+    .critical {
+      background: linear-gradient(135deg, #dc3545, #e83e8c);
+      color: white;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+      50% { box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4); }
+      100% { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+    }
+
+    .status-icon {
+      font-size: 0.8em;
+    }
+
+    .details-btn {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #91accb, #9dbbc9);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .details-btn:hover {
+      background: linear-gradient(135deg, #7a95b1, #8ba5b3);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .details-btn:active {
+      transform: translateY(0);
+    }
+
+    .patient-row {
+      transition: all 0.3s ease;
+    }
+
+    .patient-row.critical-patient {
+      background: rgba(220, 53, 69, 0.05);
+      border-left: 4px solid #dc3545;
+    }
+
+    .patient-row.warning-patient {
+      background: rgba(255, 193, 7, 0.05);
+      border-left: 4px solid #ffc107;
+    }
+
+    .alert-count {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #dc3545;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 25px;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+      z-index: 1000;
+    }
+
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 2em;
+      }
+      
+      .legend {
+        gap: 15px;
+      }
+      
+      table {
+        font-size: 0.9em;
+      }
+      
+      th, td {
+        padding: 12px 8px;
+      }
+      
+      .vital-badge {
+        min-width: 60px;
+        padding: 6px 10px;
+        font-size: 0.8em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="alert-count" id="alertCount" style="display: none;">
+    🚨 <span id="alertNumber">0</span> Critical Alerts
+  </div>
+
+  <div class="header">
+    <div class="logo">
+      <svg width="160" height="120" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <!-- Pulse wave before heart -->
+        <path d="M20 150 L60 150 L80 100 L100 200 L120 50 L140 150 L180 150" 
+              stroke="#FF6B47" 
+              stroke-width="12" 
+              fill="none" 
+              stroke-linecap="round" 
+              stroke-linejoin="round"
+              filter="url(#glow)">
+          <animate attributeName="stroke-dasharray" 
+                   values="0,1000;300,1000;0,1000" 
+                   dur="2.5s" 
+                   repeatCount="indefinite"/>
+          <animate attributeName="stroke-dashoffset" 
+                   values="0;-300;-600" 
+                   dur="2.5s" 
+                   repeatCount="indefinite"/>
+        </path>
+        
+        <!-- Static Full Heart shape -->
+        <path d="M200 120 C200 95, 180 75, 155 75 C130 75, 110 95, 110 120 C110 95, 90 75, 65 75 C40 75, 20 95, 20 120 C20 150, 40 175, 110 240 C180 175, 200 150, 200 120 Z" 
+              fill="url(#heartGradient)" 
+              transform="translate(100, 30)"
+              filter="url(#heartShadow)">
+        </path>
+        
+        <!-- Pulse wave through heart -->
+        <path d="M180 150 L220 150 L240 100 L260 200 L280 80 L300 150 L340 150 L380 150" 
+              stroke="rgba(255,255,255,0.9)" 
+              stroke-width="10" 
+              fill="none" 
+              stroke-linecap="round" 
+              stroke-linejoin="round"
+              filter="url(#glow)">
+          <animate attributeName="stroke-dasharray" 
+                   values="0,1000;300,1000;0,1000" 
+                   dur="2.5s" 
+                   repeatCount="indefinite"/>
+          <animate attributeName="stroke-dashoffset" 
+                   values="0;-300;-600" 
+                   dur="2.5s" 
+                   repeatCount="indefinite"/>
+        </path>
+        
+        <!-- Pulse wave after heart -->
+        <path d="M340 150 L380 150" 
+              stroke="#FF6B47" 
+              stroke-width="12" 
+              fill="none" 
+              stroke-linecap="round"
+              filter="url(#glow)">
+          <animate attributeName="opacity" 
+                   values="0.2;1;0.2" 
+                   dur="1s" 
+                   repeatCount="indefinite"/>
+        </path>
+        
+        <!-- Gradient and filter definitions -->
+        <defs>
+          <linearGradient id="heartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#1CB5C4;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#0891A3;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#065F46;stop-opacity:1" />
+          </linearGradient>
+          
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge> 
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          
+          <filter id="heartShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.3)"/>
+          </filter>
+        </defs>
+      </svg>
+    </div>
+    <h1>Multi-Patient Monitoring Dashboard</h1>
+    <p class="subtitle">Real-time vital signs monitoring system</p>
+  </div>
+
+  <div class="dashboard-container">
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-icon normal-legend">✓</div>
+        <span>Normal - Safe range</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-icon warning-legend">⚠</div>
+        <span>Warning - Need</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-icon critical-legend">✗</div>
+        <span>Critical - Immediate action needed</span>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Patient Name</th>
+          <th>Heart Rate<br><small>(60-100 bpm)</small></th>
+          <th>SpO₂<br><small>(95-100%)</small></th>
+          <th>Temperature<br><small>(36.5-37.5°C)</small></th>
+          <th>Respiratory Rate<br><small>(12-20 /min)</small></th>
+          <th>Blood Pressure<br><small>(~120/80 mmHg)</small></th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="dashboard"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const patients = [
+      { name: "John Doe", hr: 85, spo2: 97, temp: 36.9, rr: 18, bp: 120 },
+      { name: "Jane Smith", hr: 121, spo2: 89, temp: 38.6, rr: 26, bp: 145 },
+      { name: "Ali Ahmad", hr: 102, spo2: 93, temp: 37.8, rr: 21, bp: 135 },
+      { name: "Maryam Lee", hr: 95, spo2: 96, temp: 36.7, rr: 17, bp: 118 },
+      { name: "Sarah Connor", hr: 125, spo2: 88, temp: 39.1, rr: 28, bp: 160 },
+      { name: "David Chen", hr: 78, spo2: 98, temp: 36.8, rr: 16, bp: 115 }
+    ];
+
+    function classifyHR(hr) {
+      if (hr > 120) return { status: 'critical', icon: '✗' };
+      if (hr >= 101) return { status: 'warning', icon: '⚠' };
+      if (hr >= 60) return { status: 'normal', icon: '✓' };
+      return { status: 'critical', icon: '✗' };
+    }
+
+    function classifySpO2(spo2) {
+      if (spo2 >= 95) return { status: 'normal', icon: '✓' };
+      if (spo2 >= 90) return { status: 'warning', icon: '⚠' };
+      return { status: 'critical', icon: '✗' };
+    }
+
+    function classifyTemp(temp) {
+      if (temp > 38.5) return { status: 'critical', icon: '✗' };
+      if (temp >= 37.6) return { status: 'warning', icon: '⚠' };
+      if (temp >= 36.5) return { status: 'normal', icon: '✓' };
+      return { status: 'critical', icon: '✗' };
+    }
+
+    function classifyRR(rr) {
+      if (rr < 10 || rr > 25) return { status: 'critical', icon: '✗' };
+      if (rr >= 21) return { status: 'warning', icon: '⚠' };
+      if (rr >= 12) return { status: 'normal', icon: '✓' };
+      return { status: 'critical', icon: '✗' };
+    }
+
+    function classifyBP(bp) {
+      if (bp > 140 || bp < 90) return { status: 'critical', icon: '✗' };
+      if (bp >= 130) return { status: 'warning', icon: '⚠' };
+      return { status: 'normal', icon: '✓' };
+    }
+
+    function getWorstStatus(statuses) {
+      if (statuses.includes('critical')) return 'critical';
+      if (statuses.includes('warning')) return 'warning';
+      return 'normal';
+    }
+
+    function renderDashboard() {
+      const dashboard = document.getElementById("dashboard");
+      const alertCount = document.getElementById("alertCount");
+      const alertNumber = document.getElementById("alertNumber");
+      
+      dashboard.innerHTML = "";
+      let criticalCount = 0;
+
+      patients.forEach(p => {
+        const hrClass = classifyHR(p.hr);
+        const spo2Class = classifySpO2(p.spo2);
+        const tempClass = classifyTemp(p.temp);
+        const rrClass = classifyRR(p.rr);
+        const bpClass = classifyBP(p.bp);
+
+        const allStatuses = [hrClass.status, spo2Class.status, tempClass.status, rrClass.status, bpClass.status];
+        const patientStatus = getWorstStatus(allStatuses);
+        
+        if (patientStatus === 'critical') criticalCount++;
+
+        const row = document.createElement("tr");
+        row.className = `patient-row ${patientStatus}-patient`;
+        
+        row.innerHTML = `
+          <td class="patient-name">${p.name}</td>
+          <td>
+            <span class="vital-badge ${hrClass.status}">
+              <span class="status-icon">${hrClass.icon}</span>
+              ${p.hr}
+            </span>
+          </td>
+          <td>
+            <span class="vital-badge ${spo2Class.status}">
+              <span class="status-icon">${spo2Class.icon}</span>
+              ${p.spo2}%
+            </span>
+          </td>
+          <td>
+            <span class="vital-badge ${tempClass.status}">
+              <span class="status-icon">${tempClass.icon}</span>
+              ${p.temp}°C
+            </span>
+          </td>
+          <td>
+            <span class="vital-badge ${rrClass.status}">
+              <span class="status-icon">${rrClass.icon}</span>
+              ${p.rr}
+            </span>
+          </td>
+          <td>
+            <span class="vital-badge ${bpClass.status}">
+              <span class="status-icon">${bpClass.icon}</span>
+              ${p.bp}
+            </span>
+          </td>
+          <td>
+            <button class="details-btn" onclick="showPatientDetails('${p.name}')">
+              📋 Details
+            </button>
+          </td>
+        `;
+        dashboard.appendChild(row);
+      });
+
+      // Update alert counter
+      if (criticalCount > 0) {
+        alertNumber.textContent = criticalCount;
+        alertCount.style.display = 'block';
+      } else {
+        alertCount.style.display = 'none';
+      }
+    }
+
+    function showPatientDetails(patientName) {
+      const patient = patients.find(p => p.name === patientName);
+      if (patient) {
+        alert(`Patient: ${patient.name}\n\nVital Signs:\n• Heart Rate: ${patient.hr} bpm\n• SpO₂: ${patient.spo2}%\n• Temperature: ${patient.temp}°C\n• Respiratory Rate: ${patient.rr} breaths/min\n• Blood Pressure: ${patient.bp} mmHg\n\n⚠️ This would normally open a detailed patient view.`);
+      }
+    }
+
+    // Auto-refresh every 30 seconds (simulating real-time updates)
+    setInterval(() => {
+      // Simulate minor changes in vital signs
+      patients.forEach(p => {
+        p.hr += Math.floor(Math.random() * 6) - 3; // ±3 bpm
+        p.spo2 += Math.floor(Math.random() * 3) - 1; // ±1%
+        p.temp += (Math.random() * 0.4) - 0.2; // ±0.2°C
+        p.rr += Math.floor(Math.random() * 3) - 1; // ±1 breath/min
+        p.bp += Math.floor(Math.random() * 6) - 3; // ±3 mmHg
+        
+        // Keep values within reasonable bounds
+        p.hr = Math.max(50, Math.min(160, p.hr));
+        p.spo2 = Math.max(80, Math.min(100, p.spo2));
+        p.temp = Math.max(35.0, Math.min(42.0, Math.round(p.temp * 10) / 10));
+        p.rr = Math.max(8, Math.min(35, p.rr));
+        p.bp = Math.max(80, Math.min(200, p.bp));
+      });
+      renderDashboard();
+    }, 30000);
+
+    // Initial render
+    renderDashboard();
+  </script>
+</body>
+</html>
